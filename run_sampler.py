@@ -47,15 +47,12 @@ def main():
     # Use theory cov?
     use_theory_cov = True
 
-    # Always write a comment for the run (at least just '\n'!!)
-    comment = 'Long run 3.a, 4.3 MeV, introduced c_bar^2 prior cap at 15\n'
-
     # Set the save_name (without the file extension - the extension depends on the sampler)
     save_name = 'samples'
 
     # # # Optional:
     # Set a specific prior? (Default set to None)
-    params_bound = None
+    param_bounds = None
     params_prior = None
     ##############################################################################
     ##############################################################################
@@ -67,8 +64,7 @@ def main():
     # # # Load in the data
     loader = DataLoader(E_min, E_max, which_data)
     data = loader.get_data()
-    norm_group = loader.get_normalization_grouping()
-    gauss_prior_f = loader.get_normalization_prior_info()
+    gauss_prior_f = loader.get_normalization_priors()
 
 
     # # # Set the parameter bounds and initialize the model
@@ -78,7 +74,7 @@ def main():
         if params_prior is None:
             params_prior = np.array([[0.025, 0.015], [0.8, 0.4], [13.84, 1.63], [0.0, 1.6], [12.59, 1.85], [0.0, 1.6]]) # Default values: [center, width]
         gauss_prior_params = np.hstack([param_bounds, params_prior])
-        model = models.BS_C(data, norm_group, gauss_prior_params, gauss_prior_f, use_theory_cov)
+        model = models.BS_C(data, gauss_prior_params, gauss_prior_f, use_theory_cov)
     else:
         sys.stderr.write('Nothing else is implemented yet...')
         sys.exit(-1)
@@ -88,6 +84,9 @@ def main():
         run_ptemcee(model, n_burns, n_steps, n_temps_low, n_temps_high, save_name, parameterization)
     else:
         run_emcee(model, n_burns, n_steps, save_name)
+
+
+
 
 
 def run_emcee(model, n_burn : int, n_step : int, save_name : str):
@@ -130,6 +129,8 @@ def run_emcee(model, n_burn : int, n_step : int, save_name : str):
 
 
 
+
+
 def run_ptemcee(model, n_burn : int, n_step : int, n_temps_low : int, n_temps_high : int, save_name : str, parameterization : str = 'bs_C'):
     # Set the save name
     save_name = save_name + '.npz'
@@ -155,9 +156,6 @@ def run_ptemcee(model, n_burn : int, n_step : int, n_temps_low : int, n_temps_hi
     else:
          sys.stdout.write('Parameterization not recognized\n')
          sys.exit(-1)
-
-    # Cast to an array
-    # starting_samples = np.column_stack(starting_samples)
 
     # # # # Initialize the sampler
     sampler = ptemcee.Sampler(n_walkers, model.total_dim, model.log_likelihood, model.log_prior, n_temps, betas = betas)
